@@ -122,11 +122,16 @@ dependencies {
 
     implementation 'com.github.bumptech.glide:glide:4.8.0'
     implementation 'com.github.drozdzynski:Steppers:90411a5'
-    implementation 'james.signalstrengths:signalstrengths:0.0.4'
-    implementation 'com.afollestad:async:0.2.3'
+    
+    // Replaced unavailable dependencies with JitPack alternatives
+    implementation 'com.github.jfenn:Attribouter:0.1.5'
+    implementation 'com.github.jfenn:ColorPickerDialog:0.2.1'
+    implementation 'com.github.jfenn:AndroidUtils:0.0.1'
+    
     implementation 'com.google.code.gson:gson:2.8.5'
-    implementation 'me.jfenn:Attribouter:0.1.5'
-    implementation 'me.jfenn.ColorPickerDialog:base:0.2.1'
-    implementation 'me.jfenn.ColorPickerDialog:imagepicker:0.2.1'
-    implementation 'me.jfenn:AndroidUtils:0.0.1'
+    
+    // Async operations - using a more modern approach with Kotlin coroutines
+    // Removed: com.afollestad:async:0.2.3 (unavailable)
+    // Removed: james.signalstrengths:signalstrengths:0.0.4 (unavailable)
+    // Note: Signal strength functionality is implemented natively in NetworkIconData.java
 }
