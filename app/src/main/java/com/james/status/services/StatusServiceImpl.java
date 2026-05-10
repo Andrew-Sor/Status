@@ -215,7 +215,7 @@ public class StatusServiceImpl {
         visibleIntent.putExtra(ActivityFullScreenSettingReceiver.EXTRA_COMPONENT, activityData.packageName + "/" + activityData.name);
         visibleIntent.putExtra(ActivityFullScreenSettingReceiver.EXTRA_FULLSCREEN, isFullscreen);
 
-        builder.addAction(R.drawable.ic_notification_visible, service.getString(isFullscreen ? R.string.action_show_status : R.string.action_hide_status), PendingIntent.getBroadcast(service, 0, visibleIntent, PendingIntent.FLAG_CANCEL_CURRENT));
+        builder.addAction(R.drawable.ic_notification_visible, service.getString(isFullscreen ? R.string.action_show_status : R.string.action_hide_status), PendingIntent.getBroadcast(service, 0, visibleIntent, PendingIntent.FLAG_UPDATE_CURRENT));
 
         Intent settingsIntent = new Intent(service, AppSettingActivity.class);
         settingsIntent.putExtra(AppSettingActivity.EXTRA_COMPONENT, activityData.packageName);
@@ -275,7 +275,7 @@ public class StatusServiceImpl {
             WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT, StaticUtils.getStatusBarHeight(service),
                     getOverlayType(),
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                     PixelFormat.TRANSLUCENT);
 
             params.gravity = Gravity.TOP;
@@ -290,7 +290,7 @@ public class StatusServiceImpl {
             if (fullscreenView == null || fullscreenView.getParent() == null) {
                 WindowManager.LayoutParams params = new WindowManager.LayoutParams(1, WindowManager.LayoutParams.MATCH_PARENT,
                         getOverlayType(),
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                         PixelFormat.TRANSPARENT);
 
                 params.gravity = Gravity.START | Gravity.TOP;
