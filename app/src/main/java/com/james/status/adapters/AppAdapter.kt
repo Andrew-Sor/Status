@@ -21,12 +21,13 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.afollestad.async.Action
 import com.james.status.R
 import com.james.status.data.AppPreferenceData
 import com.james.status.dialogs.preference.AppPreferenceDialog
@@ -60,27 +61,23 @@ class AppAdapter(private val context: Context, private val apps: MutableList<App
 
         holder.icon.setImageDrawable(ColorDrawable(Color.TRANSPARENT))
 
-        object : Action<Drawable>() {
-            override fun id(): String = "appIcon"
-
-            @Throws(InterruptedException::class)
-            override fun run(): Drawable? {
-                getApp(holder.adapterPosition)?.let {
-                    try {
-                        return packageManager.getApplicationIcon(it.packageName)
-                    } catch (ignored: PackageManager.NameNotFoundException) {
-                    }
-                }
-
-                return null
-            }
-
-            override fun done(result: Drawable?) {
-                result?.let {
-                    holder.icon.setImageDrawable(it)
+        // Load icon in background thread instead of using afollestad.async
+        Thread {
+            var drawable: Drawable? = null
+            getApp(holder.adapterPosition)?.let {
+                try {
+                    drawable = packageManager.getApplicationIcon(it.packageName)
+                } catch (ignored: PackageManager.NameNotFoundException) {
                 }
             }
-        }.execute()
+
+            val finalDrawable = drawable
+            Handler(Looper.getMainLooper()).post {
+                if (finalDrawable != null) {
+                    holder.icon.setImageDrawable(finalDrawable)
+                }
+            }
+        }.start()
 
         holder.itemView.setOnClickListener { v ->
             getApp(holder.adapterPosition)?.let {
@@ -113,29 +110,27 @@ class AppAdapter(private val context: Context, private val apps: MutableList<App
             })
         } else {
             apps.sortWith(Comparator { lhs, rhs ->
-                var value = 0
-
                 val label1 = lhs.getLabel(this@AppAdapter.context)
                 val label2 = rhs.getLabel(this@AppAdapter.context)
-                if (label1 != null && label2 != null) {
-                    value += StringUtils.difference(label1.toLowerCase(), string).length
-                    value -= StringUtils.difference(label2.toLowerCase(), string).length
+
+                when {
+                    label1 != null && label2 != null ->
+                        when {
+                            label1.contains(string, ignoreCase = true) && label2.contains(string, ignoreCase = true) -> label1.compareTo(label2, ignoreCase = true)
+                            label1.contains(string, ignoreCase = true) -> -1
+                            label2.contains(string, ignoreCase = true) -> 1
+                            else -> label1.compareTo(label2, ignoreCase = true)
+                        }
+                    else -> 0
                 }
-
-                value += StringUtils.difference(lhs.componentName, string).length
-                value -= StringUtils.difference(rhs.componentName, string).length
-
-                value
             })
         }
-
         notifyDataSetChanged()
     }
 
-    class ViewHolder(internal var v: View) : RecyclerView.ViewHolder(v) {
-        internal var name: TextView = v.findViewById(R.id.appName)
-        internal var packageName: TextView = v.findViewById(R.id.appPackage)
-        internal var icon: CustomImageView = v.findViewById(R.id.icon)
-        internal var more: View = v.findViewById(R.id.more)
+    class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+        val name: TextView = v.findViewById(R.id.title)
+        val packageName: TextView = v.findViewById(R.id.subtitle)
+        val icon: CustomImageView = v.findViewById(R.id.icon)
     }
 }

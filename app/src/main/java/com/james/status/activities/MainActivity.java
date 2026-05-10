@@ -63,7 +63,6 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.MenuItemCompat;
 import androidx.core.view.ViewCompat;
 import androidx.viewpager.widget.ViewPager;
-import me.jfenn.androidutils.DimenUtils;
 
 public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, CompoundButton.OnCheckedChangeListener {
 
@@ -107,66 +106,43 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         expand = findViewById(R.id.expand);
         title = findViewById(R.id.title);
         content = findViewById(R.id.content);
-        icon = findViewById(R.id.tutorialIcon);
+        icon = findViewById(R.id.icon);
         fab = findViewById(R.id.fab);
 
-        fab.setOnClickListener(v -> {
-            if (adapter.getItem(viewPager.getCurrentItem()) instanceof AppPreferenceFragment)
-                ((AppPreferenceFragment) adapter.getItem(viewPager.getCurrentItem())).showDialog();
-        });
+        adapter = new SimplePagerAdapter(getSupportFragmentManager());
+        adapter.addFragment(new GeneralPreferenceFragment(), getString(R.string.preference_general));
+        adapter.addFragment(new IconPreferenceFragment(), getString(R.string.preference_icon));
+        adapter.addFragment(new AppPreferenceFragment(), getString(R.string.preference_app));
+        adapter.addFragment(new HelpFragment(), getString(R.string.preference_help));
 
-        ViewCompat.setElevation(bottomSheet, DimenUtils.dpToPx(10));
+        viewPager.setAdapter(adapter);
+        viewPager.addOnPageChangeListener(this);
+        tabLayout.setupWithViewPager(viewPager);
+
+        service.setChecked((boolean) PreferenceData.STATUS_ENABLED.getValue(this));
+        service.setOnCheckedChangeListener(this);
+
+        if (StaticUtils.shouldShowTutorial(this, "mainActivity"))
+            setTutorial(R.string.tutorial_main, R.string.tutorial_main_desc, new int[]{R.id.title}, true);
 
         behavior = BottomSheetBehavior.from(bottomSheet);
-        behavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-        behavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-            @Override
-            public void onStateChanged(@NonNull View bottomSheet, int newState) {
-                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
-                    content.animate().alpha(1).start();
-                    expand.animate().alpha(0).start();
-                } else {
-                    content.animate().alpha(0).start();
-                    expand.animate().alpha(1).start();
-                }
-            }
+        behavior.setHideable(true);
+        if (!StaticUtils.isAllPermissionsGranted(this))
+            behavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        else behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-            @Override
-            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-
-            }
-        });
-
-        bottomSheet.setOnClickListener(v -> {
+        expand.setOnClickListener(v -> {
             if (behavior.getState() == BottomSheetBehavior.STATE_COLLAPSED)
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-            else if (behavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-                OnTutorialClickListener listener = (OnTutorialClickListener) v.getTag();
-                if (listener != null)
-                    listener.onClick();
-
-                if (behavior.isHideable())
-                    behavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-            }
-        });
-
-        expand.setOnClickListener(v -> behavior.setState(BottomSheetBehavior.STATE_EXPANDED));
-
-        appbar.addOnOffsetChangedListener((appBarLayout, verticalOffset) -> {
-            if (verticalOffset != 0 && behavior != null && behavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
+            else if (behavior.getState() == BottomSheetBehavior.STATE_EXPANDED)
                 behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         });
 
-        service.setChecked((boolean) PreferenceData.STATUS_ENABLED.getValue(this) && StaticUtils.isStatusServiceRunning(this));
-        service.setOnCheckedChangeListener(this);
+        fab.setOnClickListener(v ->
+                startActivityForResult(new Intent(MainActivity.this, ImagePickerActivity.class), 0)
+        );
 
-        adapter = new SimplePagerAdapter(this, getSupportFragmentManager(), viewPager, new GeneralPreferenceFragment(), new IconPreferenceFragment(), new AppPreferenceFragment(), new HelpFragment());
-        viewPager.setAdapter(adapter);
-        viewPager.addOnPageChangeListener(this);
-
-        tabLayout.setupWithViewPager(viewPager);
-
-        tooManyIconsReceiver = new TooManyIconsReceiver(this);
+        tooManyIconsReceiver = new TooManyIconsReceiver();
         registerReceiver(tooManyIconsReceiver, new IntentFilter(ACTION_TOO_MANY_ICONS));
     }
 
@@ -176,74 +152,21 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         unregisterReceiver(tooManyIconsReceiver);
     }
 
-    public void setTutorial(@StringRes int titleRes, @StringRes int contentRes, OnTutorialClickListener listener, boolean forceRead) {
-        title.setText(titleRes);
-        content.setText(contentRes);
-        behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-        behavior.setHideable(!forceRead);
-        appbar.setExpanded(true, true);
-        bottomSheet.setTag(listener);
+    private void setTutorial(@StringRes int title, @StringRes int content, @Nullable int[] ids, boolean showSkip) {
+        this.title.setText(title);
+        this.content.setText(content);
 
-        if (forceRead) {
-            bottomSheet.setBackgroundColor(ContextCompat.getColor(this, R.color.red));
-            int textColorPrimary = ContextCompat.getColor(this, R.color.textColorPrimaryInverse);
-            title.setTextColor(textColorPrimary);
-            expand.setColorFilter(textColorPrimary);
-            content.setTextColor(ContextCompat.getColor(this, R.color.textColorSecondaryInverse));
-            icon.setColorFilter(textColorPrimary);
-        } else {
-            bottomSheet.setBackgroundColor(ContextCompat.getColor(this, R.color.colorPrimary));
-            int textColorPrimary = ContextCompat.getColor(this, R.color.textColorPrimary);
-            title.setTextColor(textColorPrimary);
-            expand.setColorFilter(textColorPrimary);
-            content.setTextColor(ContextCompat.getColor(this, R.color.textColorSecondary));
-            icon.setColorFilter(ContextCompat.getColor(this, R.color.colorAccent));
-        }
+        BottomSheetBehavior.from(bottomSheet).setState(BottomSheetBehavior.STATE_EXPANDED);
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (isChecked)
+            StatusServiceImpl.start(this);
+        else
+            StatusServiceImpl.stop(this);
 
-        service.setOnCheckedChangeListener(null);
-        service.setChecked((boolean) PreferenceData.STATUS_ENABLED.getValue(this) || StaticUtils.isStatusServiceRunning(this));
-        service.setOnCheckedChangeListener(this);
-
-        if (behavior.getState() == BottomSheetBehavior.STATE_HIDDEN) {
-            if (!StaticUtils.isStatusServiceRunning(this) && StaticUtils.shouldShowTutorial(this, "enable")) {
-                setTutorial(R.string.tutorial_enable, R.string.tutorial_enable_desc, () -> {
-                    if (service != null) service.setChecked(true);
-                }, false);
-            } else if (!StaticUtils.isAllPermissionsGranted(this)) {
-                setTutorial(R.string.tutorial_missing_permissions, R.string.tutorial_missing_permissions_desc, () -> {
-                    List<String> permissions = new ArrayList<>();
-                    for (IconData icon : StatusServiceImpl.getIcons(MainActivity.this)) {
-                        permissions.addAll(Arrays.asList(icon.getPermissions()));
-                    }
-
-                    StaticUtils.requestPermissions(MainActivity.this, permissions.toArray(new String[permissions.size()]));
-                }, true);
-            } else if (searchView != null && StaticUtils.shouldShowTutorial(MainActivity.this, "search", 1)) {
-                setTutorial(R.string.tutorial_search, R.string.tutorial_search_desc, () -> {
-                    if (searchView != null) searchView.setIconified(false);
-                }, false);
-            } else if (tabLayout != null && viewPager != null && viewPager.getCurrentItem() != 3 && StaticUtils.shouldShowTutorial(MainActivity.this, "faqs", 2)) {
-                setTutorial(R.string.tutorial_help, R.string.tutorial_help_desc, () -> {
-                    if (viewPager != null) viewPager.setCurrentItem(3);
-                }, false);
-            } else if (StaticUtils.shouldShowTutorial(MainActivity.this, "donate", 3)) {
-                new AlertDialog.Builder(this)
-                        .setTitle(R.string.tutorial_donate)
-                        .setMessage(R.string.tutorial_donate_desc)
-                        .setCancelable(false)
-                        .setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.dismiss())
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                            MainActivity.this.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(InfoUtils.SUPPORT_URL)));
-                            dialog.dismiss();
-                        })
-                        .show();
-            }
-        }
+        PreferenceData.STATUS_ENABLED.setValue(this, isChecked);
     }
 
     @Override
@@ -293,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 editor.apply();
                 break;
             case R.id.action_about:
-                startActivity(new Intent(this, AttribouterActivity.class));
+                startActivity(new Intent(this, HelpFragment.class));
                 break;
             case R.id.action_reset:
                 if (adapter.getItem(viewPager.getCurrentItem()) instanceof AppPreferenceFragment)
@@ -346,9 +269,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     }
                     break;
                 case 2:
-                    if (StaticUtils.shouldShowTutorial(this, "activities")) {
-                        setTutorial(R.string.tutorial_activities, R.string.tutorial_activities_desc, null, false);
-                    }
+                    if (StaticUtils.shouldShowTutorial(this, "notify"))
+                        setTutorial(R.string.tutorial_app_notification, R.string.tutorial_app_notification_desc, null, false);
                     break;
             }
         }
@@ -359,44 +281,22 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     }
 
-    @Override
-    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-        if (b) {
-            StatusServiceImpl.start(this);
-            if (!StaticUtils.isReady(this)) {
-                startActivity(new Intent(this, StartActivity.class));
-
-                service.setOnCheckedChangeListener(null);
-                service.setChecked(false);
-                service.setOnCheckedChangeListener(this);
-                return;
-            }
-        } else StatusServiceImpl.stop(this);
-
-        PreferenceData.STATUS_ENABLED.setValue(this, b);
-    }
-
-    public interface OnTutorialClickListener {
-        void onClick();
-    }
-
-    public static class TooManyIconsReceiver extends BroadcastReceiver {
-
-        private MainActivity activity;
-
-        public TooManyIconsReceiver(MainActivity activity) {
-            this.activity = activity;
-        }
-
+    private class TooManyIconsReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent != null && intent.getAction() != null && intent.getAction().equals(ACTION_TOO_MANY_ICONS)) {
-                if (intent.getBooleanExtra(EXTRA_MANY_ICONS, true))
-                    activity.setTutorial(R.string.tutorial_too_many_icons, R.string.tutorial_too_many_icons_desc, null, true);
-                else if (!activity.behavior.isHideable()) {
-                    activity.behavior.setHideable(true);
-                    activity.behavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-                }
+            boolean isTooMany = intent.getBooleanExtra(EXTRA_MANY_ICONS, false);
+
+            if (isTooMany) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle(R.string.dialog_too_many_icons)
+                        .setMessage(R.string.dialog_too_many_icons_desc)
+                        .setCancelable(false)
+                        .setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.dismiss())
+                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                            MainActivity.this.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(InfoUtils.SUPPORT_URL)));
+                            dialog.dismiss();
+                        })
+                        .show();
             }
         }
     }

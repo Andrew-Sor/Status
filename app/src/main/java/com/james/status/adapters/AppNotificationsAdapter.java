@@ -21,12 +21,13 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.afollestad.async.Action;
 import com.james.status.R;
 import com.james.status.data.AppPreferenceData;
 import com.james.status.data.PreferenceData;
@@ -76,33 +77,24 @@ public class AppNotificationsAdapter extends RecyclerView.Adapter<AppNotificatio
 
         holder.icon.setImageDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        new Action<Drawable>() {
-            @NonNull
-            @Override
-            public String id() {
-                return "appIcon";
-            }
-
-            @Nullable
-            @Override
-            protected Drawable run() throws InterruptedException {
-                AppPreferenceData app = getApp(holder.getAdapterPosition());
-                if (app != null) {
-                    try {
-                        return packageManager.getApplicationIcon(app.getPackageName());
-                    } catch (PackageManager.NameNotFoundException ignored) {
-                    }
+        // Load icon in background thread instead of using afollestad.async
+        new Thread(() -> {
+            AppPreferenceData appData = getApp(holder.getAdapterPosition());
+            Drawable drawable = null;
+            if (appData != null) {
+                try {
+                    drawable = packageManager.getApplicationIcon(appData.getPackageName());
+                } catch (PackageManager.NameNotFoundException ignored) {
                 }
-
-                return null;
             }
 
-            @Override
-            protected void done(@Nullable Drawable result) {
-                if (result != null)
-                    holder.icon.setImageDrawable(result);
-            }
-        }.execute();
+            final Drawable finalDrawable = drawable;
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(() -> {
+                if (finalDrawable != null)
+                    holder.icon.setImageDrawable(finalDrawable);
+            });
+        }).start();
 
         holder.itemView.setOnClickListener(v -> holder.enabledSwitch.toggle());
 
@@ -117,8 +109,9 @@ public class AppNotificationsAdapter extends RecyclerView.Adapter<AppNotificatio
 
     @Nullable
     private AppPreferenceData getApp(int position) {
-        if (position < 0 || position >= apps.size()) return null;
-        else return apps.get(position);
+        if (position < 0 || position >= apps.size())
+            return null;
+        return apps.get(position);
     }
 
     @Override
@@ -126,50 +119,18 @@ public class AppNotificationsAdapter extends RecyclerView.Adapter<AppNotificatio
         return apps.size();
     }
 
-    public void filter(@Nullable final String string) {
-        if (string == null || string.length() < 1) {
-            Collections.sort(apps, (lhs, rhs) -> {
-                String label1 = lhs.getLabel(AppNotificationsAdapter.this.context);
-                String label2 = rhs.getLabel(AppNotificationsAdapter.this.context);
-                if (label1 != null && label2 != null)
-                    return label1.compareToIgnoreCase(label2);
-                else return 0;
-            });
-        } else {
-            Collections.sort(apps, (lhs, rhs) -> {
-                int value = 0;
-
-                String label1 = lhs.getLabel(AppNotificationsAdapter.this.context);
-                String label2 = rhs.getLabel(AppNotificationsAdapter.this.context);
-                if (label1 != null && label2 != null) {
-                    value += StringUtils.difference(label1.toLowerCase(), string).length();
-                    value -= StringUtils.difference(label2.toLowerCase(), string).length();
-                }
-
-                value += StringUtils.difference(lhs.getComponentName(), string).length();
-                value -= StringUtils.difference(rhs.getComponentName(), string).length();
-
-                return value;
-            });
-        }
-
-        notifyDataSetChanged();
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-
-        View v;
-        TextView name, packageName;
-        CustomImageView icon;
-        SwitchCompat enabledSwitch;
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        public TextView name;
+        public TextView packageName;
+        public CustomImageView icon;
+        public SwitchCompat enabledSwitch;
 
         public ViewHolder(View v) {
             super(v);
-            this.v = v;
-            name = v.findViewById(R.id.appName);
-            packageName = v.findViewById(R.id.appPackage);
+            name = v.findViewById(R.id.title);
+            packageName = v.findViewById(R.id.subtitle);
             icon = v.findViewById(R.id.icon);
-            enabledSwitch = v.findViewById(R.id.enabledSwitch);
+            enabledSwitch = v.findViewById(R.id.enabled);
         }
     }
 }
