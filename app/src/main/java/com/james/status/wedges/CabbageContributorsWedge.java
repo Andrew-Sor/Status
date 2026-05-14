@@ -16,7 +16,5 @@
 
 package com.james.status.wedges;
 
-// Deprecated - Attribouter library no longer available
-// This file is kept for compatibility but provides no functionality
-public class CabbageContributorsWedge {
-}
+// This class has been disabled due to dependency on unavailable libraries
+// Functionality moved to MainActivity Help section if needed
