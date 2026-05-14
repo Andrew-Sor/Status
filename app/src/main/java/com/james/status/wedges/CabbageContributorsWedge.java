@@ -16,48 +16,7 @@
 
 package com.james.status.wedges;
 
-import android.content.Context;
-import android.content.res.XmlResourceParser;
-import android.graphics.drawable.Drawable;
-import android.view.HapticFeedbackConstants;
-import android.widget.ImageView;
-
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.target.SimpleTarget;
-import com.bumptech.glide.request.transition.Transition;
-import com.james.status.R;
-
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import me.jfenn.attribouter.wedges.ContributorsWedge;
-
-public class CabbageContributorsWedge extends ContributorsWedge {
-
-    private static final String CABBAGE_URL = "https://jfenn.me/images/headers/cabbage.jpg";
-
-    public CabbageContributorsWedge(XmlResourceParser parser) throws XmlPullParserException, IOException {
-        super(parser);
-    }
-
-    @Override
-    public void bind(Context context, final ViewHolder viewHolder) {
-        super.bind(context, viewHolder);
-        viewHolder.itemView.findViewById(R.id.first).setOnLongClickListener(v -> {
-            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-            Glide.with(v.getContext()).load(CABBAGE_URL).into(new SimpleTarget<Drawable>() {
-                @Override
-                public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
-                    ImageView imageView = viewHolder.itemView.findViewById(R.id.firstImage);
-                    if (imageView != null)
-                        imageView.setImageDrawable(resource);
-                }
-            });
-
-            return false;
-        });
-    }
+// Deprecated - Attribouter library no longer available
+// This file is kept for compatibility but provides no functionality
+public class CabbageContributorsWedge {
 }

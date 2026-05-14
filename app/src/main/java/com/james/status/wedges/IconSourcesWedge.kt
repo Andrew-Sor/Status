@@ -16,32 +16,5 @@
 
 package com.james.status.wedges
 
-import android.content.Context
-import android.content.res.XmlResourceParser
-import android.view.View
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.james.status.R
-import me.jfenn.attribouter.adapters.InfoAdapter
-import me.jfenn.attribouter.wedges.Wedge
-
-class IconSourcesWedge(parser: XmlResourceParser) : Wedge<IconSourcesWedge.ViewHolder>(R.layout.wedge_icon_sources) {
-
-    init {
-        addChildren(parser)
-    }
-
-    override fun getViewHolder(v: View): ViewHolder {
-        return ViewHolder(v)
-    }
-
-    override fun bind(context: Context, viewHolder: ViewHolder) {
-        viewHolder.recycler.layoutManager = LinearLayoutManager(context)
-        viewHolder.recycler.adapter = InfoAdapter(children)
-    }
-
-    class ViewHolder(v: View) : Wedge.ViewHolder(v) {
-        val recycler: RecyclerView = v.findViewById(R.id.recycler)
-    }
-
-}
+// Deprecated - Attribouter library no longer available
+// This file is kept for compatibility but provides no functionality

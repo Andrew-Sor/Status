@@ -16,36 +16,5 @@
 
 package com.james.status.wedges
 
-import android.content.Context
-import android.content.res.XmlResourceParser
-import android.view.View
-import android.widget.TextView
-import com.james.status.R
-import com.james.status.utils.UrlClickListener
-import me.jfenn.attribouter.utils.ResourceUtils
-import me.jfenn.attribouter.wedges.Wedge
-
-class IconSourceWedge(parser: XmlResourceParser) : Wedge<IconSourceWedge.ViewHolder>(R.layout.wedge_icon_source) {
-
-    private val name: String = parser.getAttributeValue(null, "name")
-    private val description: String = parser.getAttributeValue(null, "description")
-    private val url: String = parser.getAttributeValue(null, "url")
-
-    init {
-        addChildren(parser)
-    }
-
-    override fun getViewHolder(v: View): ViewHolder = ViewHolder(v)
-
-    override fun bind(context: Context, viewHolder: ViewHolder) {
-        viewHolder.sourceName.text = ResourceUtils.getString(context, name)
-        viewHolder.sourceDesc.text = ResourceUtils.getString(context, description)
-        viewHolder.itemView.setOnClickListener(UrlClickListener(url))
-    }
-
-    class ViewHolder(v: View) : Wedge.ViewHolder(v) {
-        val sourceName: TextView = v.findViewById(R.id.sourceName)
-        val sourceDesc: TextView = v.findViewById(R.id.sourceDesc)
-    }
-
-}
+// Deprecated - Attribouter library no longer available
+// This file is kept for compatibility but provides no functionality
